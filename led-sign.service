@@ -1,0 +1,19 @@
+[Unit]
+Description=NanoLumens Dark Room LED Sign
+After=network-online.target bluetooth.target graphical.target
+Wants=network-online.target bluetooth.target
+
+[Service]
+Type=simple
+User=pi
+Environment=DISPLAY=:0
+Environment=SDL_VIDEODRIVER=x11
+Environment=SDL_VIDEO_WINDOW_POS=0,0
+WorkingDirectory=/home/pi/led-sign
+ExecStartPre=/bin/sleep 10
+ExecStart=/usr/bin/python3 /home/pi/led-sign/sign.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=graphical.target
