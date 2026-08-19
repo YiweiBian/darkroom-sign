@@ -18,7 +18,7 @@ Numpad bindings
   Enter -> Blank / off
   *     -> reserved (no-op)
 """
-
+import json
 import time
 import threading
 import datetime
@@ -38,6 +38,34 @@ state = {
     "running":     True,
     "needs_update": True,
 }
+STATE_FILE = '/home/nano_yiweib/led-sign/state.json'
+CONFIG_FILE = '/home/nano_yiweib/led-sign/config.json'
+_last_state_mtime = 0
+_last_config_mtime = 0
+
+def check_config_changed():
+    global _last_config_mtime
+    try:
+        mtime = os.path.getmtime(CONFIG_FILE)
+        if mtime != _last_config_mtime:
+            _last_config_mtime = mtime
+            return True
+    except:
+        pass
+    return False
+
+def check_state_file():
+    global _last_state_mtime
+    try:
+        mtime = os.path.getmtime(STATE_FILE)
+        if mtime != _last_state_mtime:
+            _last_state_mtime = mtime
+            with open(STATE_FILE) as f:
+                data = json.load(f)
+                return data.get('mode')
+    except:
+        pass
+    return None
 
 # -- Font loader -----------------------------------------------------------------
 def load_font(size, bold=False):
@@ -95,7 +123,27 @@ def build_two_line_image(line1, line2, thick_border=True, show_divider=True):
 
     return img
 
+_last_connectivity_check = 0
+_connectivity_cache = False
+
+def is_connected():
+    global _last_connectivity_check, _connectivity_cache
+    now = time.time()
+    if now - _last_connectivity_check < 30:
+        return _connectivity_cache
+    try:
+        import socket
+        socket.setdefaulttimeout(2)
+        socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect(("8.8.8.8", 53))
+        _connectivity_cache = True
+    except:
+        _connectivity_cache = False
+    _last_connectivity_check = now
+    return _connectivity_cache
+
 def build_clock_image():
+    if not is_connected():
+        return build_two_line_image("OFFLINE", "INTERNET NEEDED", thick_border=False)
     now    = datetime.datetime.now()
     t_str  = now.strftime("%H:%M")
     img    = Image.new("1", (EPD_W, EPD_H), 255)
@@ -121,15 +169,12 @@ def build_clock_image():
 def build_off_image():
     return Image.new("1", (EPD_W, EPD_H), 255)
 
-def build_idle_image():
-    """R&D Dark Room — default screen, single centered line."""
+def build_idle_image(text="R&D DARK ROOM"):
     img  = Image.new("1", (EPD_W, EPD_H), 255)
     draw = ImageDraw.Draw(img)
     for i in range(BORDER):
         draw.rectangle([i, i, EPD_W - 1 - i, EPD_H - 1 - i], outline=0)
-
     font = load_font(22, bold=True)
-    text = "R&D DARK ROOM"
     bbox = draw.textbbox((0, 0), text, font=font)
     w, h = bbox[2] - bbox[0], bbox[3] - bbox[1]
     x = (EPD_W - w) // 2
@@ -137,30 +182,47 @@ def build_idle_image():
     draw.text((x, y), text, font=font, fill=0)
     return img
 
-# -- Mode -> renderer map -----------------------------------------------------------
+
+def load_config():
+    """Load message config from config.json, fall back to defaults if missing."""
+    defaults = {
+        "idle":        {"line1": "R&D DARK ROOM",    "line2": ""},
+        "testing":     {"line1": "TEST IN PROGRESS", "line2": "DO NOT ENTER"},
+        "occupied":    {"line1": "OCCUPIED",          "line2": "OTHER TESTING"},
+        "unavailable": {"line1": "ROOM",              "line2": "NOT AVAILABLE"},
+        "open":        {"line1": "OPEN",              "line2": "COME ON IN"},
+        "break":       {"line1": "ON BREAK",          "line2": "BACK SOON"},
+        "back5":       {"line1": "COME BACK IN",      "line2": "5 MIN"},
+        "back10":      {"line1": "COME BACK IN",      "line2": "10 MIN"},
+        "back20":      {"line1": "COME BACK IN",      "line2": "20 MIN"},
+    }
+    try:
+        with open(CONFIG_FILE) as f:
+            data = json.load(f)
+            modes = data.get('modes', {})
+            for key in defaults:
+                if key in modes:
+                    defaults[key] = modes[key]
+    except:
+        pass
+    return defaults
+
 def render_for_mode(mode):
+    config = load_config()
     if mode == "clock":
         return build_clock_image()
-    if mode == "testing":
-        return build_two_line_image("TEST IN PROGRESS", "DO NOT ENTER")
-    if mode == "occupied":
-        return build_two_line_image("OCCUPIED", "OTHER TESTING")
-    if mode == "unavailable":
-        return build_two_line_image("ROOM", "NOT AVAILABLE", show_divider=False)
-    if mode == "open":
-        return build_two_line_image("OPEN", "COME ON IN", thick_border=False)
-    if mode == "break":
-        return build_two_line_image("ON BREAK", "BACK SOON", thick_border=False)
-    if mode == "back5":
-        return build_two_line_image("COME BACK IN", "5 MIN", thick_border=False)
-    if mode == "back10":
-        return build_two_line_image("COME BACK IN", "10 MIN", thick_border=False)
-    if mode == "back20":
-        return build_two_line_image("COME BACK IN", "20 MIN", thick_border=False)
     if mode == "off":
         return build_off_image()
-    # default / idle
-    return build_idle_image()
+    if mode == "idle":
+        return build_idle_image(config["idle"]["line1"])
+    cfg = config.get(mode, {"line1": mode.upper(), "line2": ""})
+    line1 = cfg.get("line1", "")
+    line2 = cfg.get("line2", "")
+    thick = mode in ("testing", "occupied")
+    divider = mode != "unavailable"
+    if line2:
+        return build_two_line_image(line1, line2, thick_border=thick, show_divider=divider)
+    return build_two_line_image(line1, "", thick_border=thick, show_divider=False)
 
 # -- Display loop ------------------------------------------------------------------
 def display_loop():
@@ -172,6 +234,14 @@ def display_loop():
     last_mode = None
 
     while True:
+        web_mode = check_state_file()
+        if web_mode:
+            with state_lock:
+                state["mode"] = web_mode
+                state["needs_update"] = True
+        if check_config_changed():
+            with state_lock:
+                state["needs_update"] = True
         with state_lock:
             mode         = state["mode"]
             running      = state["running"]

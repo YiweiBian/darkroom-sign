@@ -1,0 +1,16 @@
+[Unit]
+Description=NanoLumens Dark Room Sign - Web Server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=nano_yiweib
+WorkingDirectory=/home/nano_yiweib/led-sign
+ExecStartPre=/bin/sleep 20
+ExecStart=/usr/bin/python3 /home/nano_yiweib/led-sign/sign_server.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
