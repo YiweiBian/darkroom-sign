@@ -1,19 +1,18 @@
 [Unit]
 Description=NanoLumens Dark Room LED Sign - HDMI Panel
-After=network-online.target bluetooth.target graphical.target
-Wants=network-online.target bluetooth.target
+After=bluetooth.target
+Wants=bluetooth.target
 
 [Service]
 Type=simple
 User=nano_yiweib
-Environment=DISPLAY=:0
-Environment=SDL_VIDEODRIVER=x11
-Environment=SDL_VIDEO_WINDOW_POS=0,0
+Environment=SDL_VIDEODRIVER=kmsdrm
+Environment=SDL_FBDEV=/dev/fb0
 WorkingDirectory=/home/nano_yiweib/led-sign
-ExecStartPre=/bin/sleep 12
+ExecStartPre=/bin/sleep 15
 ExecStart=/usr/bin/python3 /home/nano_yiweib/led-sign/sign_hdmi.py
 Restart=on-failure
 RestartSec=5
 
 [Install]
-WantedBy=graphical.target
+WantedBy=multi-user.target
