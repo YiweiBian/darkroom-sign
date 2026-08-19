@@ -1,0 +1,92 @@
+{
+  "modes": {
+    "idle": {
+      "line1": "R&D DARK ROOM",
+      "line2": "",
+      "color1": "#ffffff",
+      "color2": "#ffffff",
+      "border_color": "#ffffff",
+      "flash": false
+    },
+    "testing": {
+      "line1": "TEST IN PROGRESS",
+      "line2": "DO NOT ENTER",
+      "color1": "#ffffff",
+      "color2": "#ff0000",
+      "border_color": "#ff0000",
+      "flash": true
+    },
+    "occupied": {
+      "line1": "OCCUPIED",
+      "line2": "OTHER TESTING",
+      "color1": "#ffffff",
+      "color2": "#ff0000",
+      "border_color": "#ff0000",
+      "flash": true
+    },
+    "unavailable": {
+      "line1": "ROOM",
+      "line2": "NOT AVAILABLE",
+      "color1": "#ffffff",
+      "color2": "#f4a261",
+      "border_color": "#f4a261",
+      "flash": false
+    },
+    "open": {
+      "line1": "OPEN",
+      "line2": "COME ON IN",
+      "color1": "#ffffff",
+      "color2": "#2a9d8f",
+      "border_color": "#2a9d8f",
+      "flash": false
+    },
+    "break": {
+      "line1": "ON BREAK",
+      "line2": "BACK SOON",
+      "color1": "#ffffff",
+      "color2": "#ffffff",
+      "border_color": "#ffffff",
+      "flash": false
+    },
+    "back5": {
+      "line1": "COME BACK IN",
+      "line2": "5 MIN",
+      "color1": "#ffffff",
+      "color2": "#ffffff",
+      "border_color": "#ffffff",
+      "flash": false
+    },
+    "back10": {
+      "line1": "COME BACK IN",
+      "line2": "10 MIN",
+      "color1": "#ffffff",
+      "color2": "#ffffff",
+      "border_color": "#ffffff",
+      "flash": false
+    },
+    "back20": {
+      "line1": "COME BACK IN",
+      "line2": "20 MIN",
+      "color1": "#ffffff",
+      "color2": "#ffffff",
+      "border_color": "#ffffff",
+      "flash": false
+    },
+    "clock": {
+      "line1": "CLOCK",
+      "line2": "",
+      "color1": "#00d2d8",
+      "color2": "#ffffff",
+      "border_color": "#ffffff",
+      "flash": false
+    },
+    "off": {
+      "line1": "",
+      "line2": "",
+      "color1": "#000000",
+      "color2": "#000000",
+      "border_color": "#000000",
+      "flash": false
+    }
+  }
+}
